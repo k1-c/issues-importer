@@ -1,0 +1,25 @@
+{
+  "name": "issues-importer",
+  "version": "1.0.0",
+  "description": "Import GitHub Issues from Google Spread Sheet",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "shunk-py (shun.kimura@integritis.io)",
+  "license": "ISC",
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS && yarn ts-node scripts/commitmsg.ts"
+    }
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.3.0",
+    "commitlint": "^11.0.0",
+    "husky": "^4.3.0"
+  },
+  "dependencies": {
+    "@types/google-apps-script": "^1.0.15"
+  }
+}
