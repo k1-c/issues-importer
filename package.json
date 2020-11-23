@@ -10,15 +10,16 @@
   "license": "ISC",
   "husky": {
     "hooks": {
-      "pre-commit": "lint-staged",
       "commit-msg": "commitlint -E HUSKY_GIT_PARAMS && yarn ts-node scripts/commitmsg.ts"
     }
   },
   "devDependencies": {
+    "@commitlint/config-conventional": "^11.0.0",
     "@google/clasp": "^2.3.0",
     "@types/node": "^14.14.9",
     "commitlint": "^11.0.0",
-    "husky": "^4.3.0"
+    "husky": "^4.3.0",
+    "ts-node": "^9.0.0"
   },
   "dependencies": {
     "@types/google-apps-script": "^1.0.15"
