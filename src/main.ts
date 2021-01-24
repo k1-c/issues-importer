@@ -2,14 +2,14 @@
 const githuburl = (username, repository) => `https://api.github.com/repos/${username}/${repository}/issues`;
 
 // request 作成関数
-const createRequest = (url, accesstoken) => {
-  return (payload) => 
+const createOptions = (accesstoken) => {
+  return (payload): GoogleAppsScript.URL_Fetch.URLFetchRequestOptions => 
     ({
-      url: url,
       method: "post",
+      contentType: 'application/json',
       headers: {
-      Authorization : `token ${accesstoken}`
-    },
+        Authorization : `token ${accesstoken}`
+      },
       payload: payload
     });
 };
@@ -20,20 +20,18 @@ const createIssue = () => {
   const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = spreadsheet.getActiveSheet();
   const lastRow = sheet.getLastRow();
+  const lastColumn = sheet.getLastColumn();
   const issueCount = lastRow - 1;
-  const range = sheet.getRange(2,1,issueCount,5); // A2 - C[issueCount]の範囲
+  const range = sheet.getRange(2,1,issueCount,lastColumn); // A2 - C[issueCount]の範囲
   const issueRows = range.getValues()
-
-  // issue 情報
-  const issues = issueRows.map(row => {
-    if(!row[0]) return {title: row[1], body: row[2], labels: row[3] ? row[3].split(',') : []}
-    return null
-  }).filter(v => v)
-
-  Logger.log(issues)
 
   // スクリプトのプロパティ
   const properties = PropertiesService.getScriptProperties()
+  const issueNumberCol = Number(properties.getProperty("COLUMN_ISSUE_NUMBER")) - 1
+  const titleCol = Number(properties.getProperty("COLUMN_TITLE")) - 1
+  const bodyCol = Number(properties.getProperty("COLUMN_BODY")) - 1
+  const labelCol = Number(properties.getProperty("COLUMN_LABEL")) - 1
+  const assigneesCol = Number(properties.getProperty("COLUMN_ASSIGNEES")) - 1
   const accesstoken = properties.getProperty("ACCESS_TOKEN")
   const username = properties.getProperty("USER_NAME")
   const repository = properties.getProperty("REPOSITORY")
@@ -42,18 +40,30 @@ const createIssue = () => {
   const url = githuburl(username, repository)
 
   // リクエスト作成用の関数作成
-  const request = createRequest(url, accesstoken)
+  const request = createOptions(accesstoken)
 
-  // リクエスト作成
-  const requests = issues.map(issue => request(JSON.stringify(issue)))
+  // issue作成
+  const issues = issueRows.map(row => {
+    if(!row[issueNumberCol]){
+      try {
+        const issue = {title: row[titleCol], body: row[bodyCol], labels: row[labelCol] ? row[labelCol].split(',') : [], assignees: row[assigneesCol] ? row[assigneesCol].split(',') : []}
+        const option = request(JSON.stringify(issue))
+        const res = JSON.parse(UrlFetchApp.fetch(url, option).getContentText())
+        const hyperlink = `=HYPERLINK("${res.html_url ?? ''}","#${res.number ?? ''}")`
+        row.splice(issueNumberCol, 1, hyperlink)
+      } catch(e) {
+        row.splice(issueNumberCol, 1, e)
+      }
+    }
+    return row
+  })
 
-  // issue 作成リクエスト送信
-  UrlFetchApp.fetchAll(requests as GoogleAppsScript.URL_Fetch.URLFetchRequest[])
-}; 
+  range.setValues(issues)
+};
 
 // 確認
 const confirmation = () => {
-  const confirmed = Browser.msgBox("github issue を作成しますか？", Browser.Buttons.OK_CANCEL);
+  const confirmed = Browser.msgBox("このシートからgithub issuesを作成しますか？", Browser.Buttons.OK_CANCEL);
   if(confirmed == 'ok') {
     createIssue()
   }
